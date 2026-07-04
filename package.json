@@ -1,0 +1,43 @@
+{
+  "name": "sonant",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./sinks/console": {
+      "types": "./dist/sinks/console.d.ts",
+      "import": "./dist/sinks/console.js"
+    },
+    "./sinks/seq": {
+      "types": "./dist/sinks/seq.d.ts",
+      "import": "./dist/sinks/seq.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "picocolors": "^1.1.1"
+  },
+  "peerDependencies": {
+    "seq-logging": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "seq-logging": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.5.0"
+  }
+}
