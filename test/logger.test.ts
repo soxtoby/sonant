@@ -54,11 +54,11 @@ describe("logger", () => {
 
     test("drops events after close and self-logs", async () => {
         let sink = captureSink()
-        let selfLogs: unknown[] = []
+        let selfLogs: string[] = []
         let logger = createLogger({
             sinks: [sink],
             selfLog(error) {
-                selfLogs.push(error)
+                selfLogs.push(String(error))
             },
         })
 
@@ -67,7 +67,7 @@ describe("logger", () => {
         logger.error("Too late")
 
         expect(sink.events).toHaveLength(0)
-        expect(selfLogs).toHaveLength(1)
+        expect(selfLogs).toEqual(["Error: Logger is closed"])
     })
 
     test("nullLogger is a complete no-op logger", async () => {
@@ -75,6 +75,105 @@ describe("logger", () => {
         expect(nullLogger.with({ A: 1 })).toBe(nullLogger)
         await expect(nullLogger.flush()).resolves.toBeUndefined()
         await expect(nullLogger.close()).resolves.toBeUndefined()
+    })
+})
+
+describe("activity tracing", () => {
+    test("completes activities into ordinary log events with trace and elapsed time", () => {
+        let sink = captureSink()
+        let logger = createLogger({ sinks: [sink] })
+
+        let activity = logger.startActivity("Handle {Route}", "/orders")
+        activity.set("StatusCode", 200)
+        activity.complete()
+
+        expect(sink.events).toHaveLength(1)
+        expect(sink.events[0]?.level).toBe("info")
+        expect(sink.events[0]?.messageTemplate).toBe("Handle {Route}")
+        expect(sink.events[0]?.properties).toEqual({ Route: "/orders", StatusCode: 200 })
+        expect(sink.events[0]?.trace?.traceId).toMatch(/^[0-9a-f]{32}$/)
+        expect(sink.events[0]?.trace?.spanId).toMatch(/^[0-9a-f]{16}$/)
+        expect(sink.events[0]?.elapsedMs).toBeGreaterThanOrEqual(0)
+    })
+
+    test("filters activities at completion with the final level", () => {
+        let sink = captureSink()
+        let logger = createLogger({ minimumLevel: "warn", sinks: [sink] })
+
+        logger.startActivity({ level: "debug" }, "Ignored").complete()
+        logger.startActivity({ level: "debug" }, "Accepted").complete("error", new Error("failed"))
+
+        expect(sink.events).toHaveLength(1)
+        expect(sink.events[0]?.level).toBe("error")
+        expect(sink.events[0]?.error).toMatchObject({ message: "failed" })
+    })
+
+    test("uses explicit parent trace and activity logger trace", () => {
+        let sink = captureSink()
+        let logger = createLogger({ sinks: [sink] })
+        let parent = {
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+            spanId: "00f067aa0ba902b7",
+        }
+
+        let activity = logger.startActivity({ parent }, "Child")
+        activity.logger.info("Inner")
+        activity.complete()
+
+        expect(activity.trace.traceId).toBe(parent.traceId)
+        expect(activity.trace.parentSpanId).toBe(parent.spanId)
+        expect(sink.events[0]?.messageTemplate).toBe("Inner")
+        expect(sink.events[0]?.trace).toEqual(activity.trace)
+        expect(sink.events[0]?.properties).toEqual({})
+        expect(sink.events[1]?.trace).toEqual(activity.trace)
+    })
+
+    test("uses current trace for ordinary log events when async storage is available", () => {
+        let sink = captureSink()
+        let logger = createLogger({ sinks: [sink] })
+
+        let activity = logger.startActivity("Outer")
+        logger.info("Inner")
+        activity.complete()
+
+        expect(logger.currentTrace).toBeUndefined()
+        expect(sink.events[0]?.messageTemplate).toBe("Inner")
+        expect(sink.events[0]?.trace).toEqual(activity.trace)
+    })
+
+    test("invalid parent context self-logs and starts a root trace", () => {
+        let sink = captureSink()
+        let selfLogs: string[] = []
+        let logger = createLogger({
+            sinks: [sink],
+            selfLog(error) {
+                selfLogs.push(String(error))
+            },
+        })
+
+        let activity = logger.startActivity({ parent: { traceId: "lol", spanId: "nope" } }, "Root")
+        activity.complete()
+
+        expect(selfLogs).toEqual(["Error: Invalid parent trace context"])
+        expect(activity.trace.parentSpanId).toBeUndefined()
+    })
+
+    test("double completion self-logs and emits once", () => {
+        let sink = captureSink()
+        let selfLogs: string[] = []
+        let logger = createLogger({
+            sinks: [sink],
+            selfLog(error) {
+                selfLogs.push(String(error))
+            },
+        })
+
+        let activity = logger.startActivity("Once")
+        activity.complete()
+        activity.complete()
+
+        expect(sink.events).toHaveLength(1)
+        expect(selfLogs).toEqual(["Error: Activity is completed"])
     })
 })
 

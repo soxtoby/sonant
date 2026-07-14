@@ -1,45 +1,6 @@
-export interface LogEvent {
-    timestamp: Date
-    level: Level
-    messageTemplate: string
-    properties: Record<string, unknown>
-    error: ErrorMetadata | undefined
-}
-
-export type Level = 'verbose' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
-
-export interface ErrorMetadata {
-    name: string
-    message: string
-    stack?: string
-}
-
-export interface LoggerConfig {
-    minimumLevel: Level | LevelSwitch
-    sinks: Sink[]
-    maxDestructureDepth: number
-    maxDestructureCollectionLength: number
-    selfLog: SelfLog | undefined
-}
-
-export interface LevelSwitch {
-    minimumLevel: Level
-}
-
-export interface Sink {
-    emit(event: LogEvent): void | Promise<void>
-    flush(): void | Promise<void>
-    close?(): void | Promise<void>
-}
-
-export type SelfLog = (error: unknown, context: SelfLogContext) => void
-
-export interface SelfLogContext {
-    operation: string
-    [key: string]: unknown
-}
-
 export interface Logger {
+    readonly currentTrace: TraceContext | undefined
+
     verbose<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
     verbose<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
 
@@ -61,10 +22,78 @@ export interface Logger {
     log<Template extends string>(level: Level, messageTemplate: Template, ...values: TemplateValues<Template>): void
     log<Template extends string>(level: Level, error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
 
+    startActivity<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): Activity
+    startActivity<Template extends string>(options: StartActivityOptions, messageTemplate: Template, ...values: TemplateValues<Template>): Activity
+
     isEnabled(level: Level): boolean
     with(properties: Record<string, unknown>): Logger
     flush(): Promise<void>
     close(): Promise<void>
+}
+
+export interface Activity {
+    readonly trace: TraceContext
+    readonly logger: Logger
+    set(name: string, value: unknown): void
+    set(properties: Record<string, unknown>): void
+    complete(): void
+    complete(error: Error): void
+    complete(level: Level): void
+    complete(level: Level, error: Error): void
+}
+
+export interface LogEvent {
+    timestamp: Date
+    level: Level
+    messageTemplate: string
+    properties: Record<string, unknown>
+    error: ErrorMetadata | undefined
+    trace: TraceContext | undefined
+    elapsedMs: number | undefined
+}
+
+export interface LoggerConfig {
+    minimumLevel: Level | LevelSwitch
+    sinks: Sink[]
+    maxDestructureDepth: number
+    maxDestructureCollectionLength: number
+    selfLog: SelfLog | undefined
+}
+
+export interface StartActivityOptions {
+    level?: Level
+    parent?: TraceContext
+}
+
+export interface TraceContext {
+    traceId: string
+    spanId: string
+    parentSpanId?: string
+}
+
+export type Level = 'verbose' | 'debug' | 'info' | 'warn' | 'error' | 'fatal'
+
+export interface LevelSwitch {
+    minimumLevel: Level
+}
+
+export interface Sink {
+    emit(event: LogEvent): void | Promise<void>
+    flush(): void | Promise<void>
+    close?(): void | Promise<void>
+}
+
+export interface ErrorMetadata {
+    name: string
+    message: string
+    stack?: string
+}
+
+export type SelfLog = (error: unknown, context: SelfLogContext) => void
+
+export interface SelfLogContext {
+    operation: string
+    [key: string]: unknown
 }
 
 export type TemplateValues<Template extends string> = ExtractPlaceholders<Template>

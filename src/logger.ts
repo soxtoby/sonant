@@ -1,7 +1,9 @@
+import { Activity, createNullActivity, type ActivityOwner } from "./activity"
 import { normalizeError, normalizeProperties } from "./destructure"
 import { isLevelEnabled, resolveMinimumLevel } from "./levels"
 import { bindProperties, parseMessageTemplate } from "./messageTemplate"
-import type { Logger as LoggerType, Level, LogEvent, LoggerConfig, TemplateValues } from "./types"
+import { asyncStorage, createTrace, isValidTraceContext } from "./tracing"
+import type { Activity as ActivityType, Level, LogEvent, LoggerConfig, Logger as LoggerType, StartActivityOptions, TemplateValues, TraceContext } from "./types"
 
 export function createLogger(options?: Partial<LoggerConfig>): LoggerType {
 	return new Logger({
@@ -13,12 +15,13 @@ export function createLogger(options?: Partial<LoggerConfig>): LoggerType {
 	}, {})
 }
 
-class Logger implements LoggerType {
+class Logger implements LoggerType, ActivityOwner {
 	private closed = false
 
 	constructor(
-		private config: LoggerConfig,
-		private contextProperties: Record<string, unknown>
+		readonly config: LoggerConfig,
+		readonly contextProperties: Record<string, unknown>,
+		private traceContext?: TraceContext
 	) { }
 
 	verbose<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
@@ -77,30 +80,79 @@ class Logger implements LoggerType {
 					level,
 					messageTemplate,
 					properties: { ...this.contextProperties, ...normalizedProperties },
-					error: error && normalizeError(error)
+					error: error && normalizeError(error),
+					trace: this.currentTrace,
+					elapsedMs: undefined,
 				}
 
-				for (let sink of this.config.sinks) {
-					try {
-						let result = sink.emit(event)
-						if (isPromiseLike(result))
-							result.catch(sinkError => this.config.selfLog?.(sinkError, { operation: 'emit', level, sink }))
-					} catch (sinkError) {
-						this.config.selfLog?.(sinkError, { operation: 'emit', level, sink })
-					}
-				}
+				this.emit(event)
 			} else {
 				this.config.selfLog?.(new Error('Message template must be a string'), { operation: 'emit', level })
 			}
 		}
 	}
 
+	startActivity<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): ActivityType
+	startActivity<Template extends string>(options: StartActivityOptions, messageTemplate: Template, ...values: TemplateValues<Template>): ActivityType
+	startActivity<Template extends string>(optionsOrTemplate: StartActivityOptions | Template, templateOrArg?: Template | unknown, ...rest: unknown[]): ActivityType {
+		let options = typeof optionsOrTemplate == 'string' ? {} : optionsOrTemplate
+		let messageTemplate = typeof optionsOrTemplate == 'string' ? optionsOrTemplate : templateOrArg
+		let values = typeof optionsOrTemplate == 'string' ? [templateOrArg, ...rest] : rest
+
+		if (typeof messageTemplate == 'string') {
+			let parent = this.resolveParentTrace(options.parent)
+			let trace = createTrace(parent)
+			let tokens = parseMessageTemplate(messageTemplate)
+			let boundProperties = bindProperties(tokens, values)
+			let properties = normalizeProperties(boundProperties, this.config)
+			let defaultLevel = options.level ?? 'info'
+			let startedAt = performance.now()
+			let parentCurrentTrace = asyncStorage?.getStore()
+
+			asyncStorage?.enterWith(trace)
+
+			return new Activity(this, trace, parentCurrentTrace, defaultLevel, messageTemplate, properties, startedAt)
+		} else {
+			this.config.selfLog?.(new Error('Message template must be a string'), { operation: 'startActivity' })
+			return new Activity(this, createTrace(undefined), asyncStorage?.getStore(), options.level ?? 'info', '', {}, performance.now())
+		}
+	}
+
+	get currentTrace() { return this.traceContext ?? asyncStorage?.getStore() }
+
 	isEnabled(level: Level) {
 		return isLevelEnabled(level, resolveMinimumLevel(this.config.minimumLevel))
 	}
 
 	with(properties: Record<string, unknown>): Logger {
-		return new Logger(this.config, { ...this.contextProperties, ...normalizeProperties(properties, this.config) })
+		return new Logger(this.config, { ...this.contextProperties, ...normalizeProperties(properties, this.config) }, this.traceContext)
+	}
+
+	withTrace(trace: TraceContext): Logger {
+		return new Logger(this.config, this.contextProperties, trace)
+	}
+
+	selfLog(error: unknown, context: { operation: string, [key: string]: unknown }) {
+		this.config.selfLog?.(error, context)
+	}
+
+	emit(event: LogEvent) {
+		for (let sink of this.config.sinks) {
+			try {
+				let result = sink.emit(event)
+				if (isPromiseLike(result))
+					result.catch(sinkError => this.config.selfLog?.(sinkError, { operation: 'emit', level: event.level, sink }))
+			} catch (sinkError) {
+				this.config.selfLog?.(sinkError, { operation: 'emit', level: event.level, sink })
+			}
+		}
+	}
+
+	private resolveParentTrace(parent: TraceContext | undefined): TraceContext | undefined {
+		if (parent && !isValidTraceContext(parent))
+			this.config.selfLog?.(new Error('Invalid parent trace context'), { operation: 'startActivity', parent })
+		else
+			return parent ?? this.currentTrace
 	}
 
 	async flush(): Promise<void> {
@@ -117,6 +169,7 @@ class Logger implements LoggerType {
 }
 
 export let nullLogger: LoggerType = {
+	currentTrace: undefined,
 	log() { },
 	verbose() { },
 	debug() { },
@@ -124,6 +177,7 @@ export let nullLogger: LoggerType = {
 	warn() { },
 	error() { },
 	fatal() { },
+	startActivity() { return createNullActivity(nullLogger) },
 	isEnabled: () => false,
 	with: () => nullLogger,
 	flush: async () => undefined,
