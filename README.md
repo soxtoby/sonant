@@ -37,12 +37,3 @@ levelSwitch.minimumLevel = "debug";
 await logger.flush();
 await logger.close();
 ```
-
-## Core API
-
-- `createLogger(options)`
-- `createLevelSwitch(minimumLevel)`
-- `nullLogger`
-- `formatMessage(messageTemplate, properties, options?)`
-
-The core package and `sonant/sinks/console` are browser-safe. `sonant/sinks/seq` is Node-only and requires the optional peer dependency `seq-logging`.

@@ -1,7 +1,12 @@
 {
   "name": "sonant",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soxtoby/sonant.git"
+  },
   "license": "MIT",
+  "packageManager": "bun@1.3.14",
   "type": "module",
   "exports": {
     ".": {
@@ -23,7 +28,10 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "verify": "bun typecheck && bun test && bun run build",
+    "version": "bun scripts/version.ts"
   },
   "dependencies": {
     "picocolors": "^1.1.1"
