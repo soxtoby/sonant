@@ -27,10 +27,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "compile": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "verify": "bun typecheck && bun test && bun run build",
+    "verify": "bun typecheck && bun test && bun run compile",
     "version": "bun scripts/version.ts"
   },
   "dependencies": {
