@@ -6,6 +6,8 @@
 
 ## Unreleased
 
+## v0.2.0
+
 ### Changed
 
 - Require `seq-logging` 3.x for native trace-field support.
