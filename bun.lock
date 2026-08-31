@@ -12,7 +12,7 @@
         "typescript": "^5.5.0",
       },
       "peerDependencies": {
-        "seq-logging": "^2.0.0",
+        "seq-logging": "^3.0.0",
       },
       "optionalPeers": [
         "seq-logging",

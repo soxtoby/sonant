@@ -6,6 +6,14 @@
 
 ## Unreleased
 
+### Changed
+
+- Require `seq-logging` 3.x for native trace-field support.
+
+### Fixed
+
+- Forward trace and span identifiers through the Seq sink.
+
 ## v0.1.0
 
 ### Added

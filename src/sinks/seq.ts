@@ -19,6 +19,8 @@ export class SeqSink implements Sink {
         this.seq.emit({
             timestamp: event.timestamp,
             level: levelMap[event.level],
+            traceId: event.trace?.traceId,
+            spanId: event.trace?.spanId,
             messageTemplate: event.messageTemplate,
             properties: event.properties,
             ...(event.error == undefined ? {} : { exception: event.error }),
