@@ -82,7 +82,7 @@ class Logger implements LoggerType, ActivityOwner {
 					properties: { ...this.contextProperties, ...normalizedProperties },
 					error: error && normalizeError(error),
 					trace: this.currentTrace,
-					elapsedMs: undefined,
+					startTimestamp: undefined,
 				}
 
 				this.emit(event)
@@ -106,7 +106,7 @@ class Logger implements LoggerType, ActivityOwner {
 			let boundProperties = bindProperties(tokens, values)
 			let properties = normalizeProperties(boundProperties, this.config)
 			let defaultLevel = options.level ?? 'info'
-			let startedAt = performance.now()
+			let startedAt = new Date()
 			let parentCurrentTrace = asyncStorage?.getStore()
 
 			asyncStorage?.enterWith(trace)
@@ -114,7 +114,7 @@ class Logger implements LoggerType, ActivityOwner {
 			return new Activity(this, trace, parentCurrentTrace, defaultLevel, messageTemplate, properties, startedAt)
 		} else {
 			this.config.selfLog?.(new Error('Message template must be a string'), { operation: 'startActivity' })
-			return new Activity(this, createTrace(undefined), asyncStorage?.getStore(), options.level ?? 'info', '', {}, performance.now())
+			return new Activity(this, createTrace(undefined), asyncStorage?.getStore(), options.level ?? 'info', '', {}, new Date())
 		}
 	}
 

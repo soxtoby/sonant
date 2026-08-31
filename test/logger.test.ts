@@ -79,7 +79,7 @@ describe("logger", () => {
 })
 
 describe("activity tracing", () => {
-    test("completes activities into ordinary log events with trace and elapsed time", () => {
+    test("completes activities into ordinary log events with trace and start time", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })
 
@@ -93,7 +93,8 @@ describe("activity tracing", () => {
         expect(sink.events[0]?.properties).toEqual({ Route: "/orders", StatusCode: 200 })
         expect(sink.events[0]?.trace?.traceId).toMatch(/^[0-9a-f]{32}$/)
         expect(sink.events[0]?.trace?.spanId).toMatch(/^[0-9a-f]{16}$/)
-        expect(sink.events[0]?.elapsedMs).toBeGreaterThanOrEqual(0)
+        expect(sink.events[0]?.startTimestamp).toBeInstanceOf(Date)
+        expect(sink.events[0]!.startTimestamp!.getTime()).toBeLessThanOrEqual(sink.events[0]!.timestamp.getTime())
     })
 
     test("filters activities at completion with the final level", () => {

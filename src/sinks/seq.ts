@@ -22,7 +22,7 @@ export class SeqSink implements Sink {
             traceId: event.trace?.traceId,
             spanId: event.trace?.spanId,
             messageTemplate: event.messageTemplate,
-            properties: event.properties,
+            properties: seqProperties(event),
             ...(event.error == undefined ? {} : { exception: event.error }),
         })
     }
@@ -30,6 +30,17 @@ export class SeqSink implements Sink {
     flush() { return this.seq.flush() }
 
     close() { return this.seq.close() }
+}
+
+function seqProperties(event: LogEvent): Record<string, unknown> {
+    if (event.startTimestamp == undefined)
+        return event.properties
+
+    return {
+        ...event.properties,
+        ...(event.trace?.parentSpanId == undefined ? {} : { ParentSpanId: event.trace.parentSpanId }),
+        SpanStartTimestamp: event.startTimestamp,
+    }
 }
 
 const levelMap: Record<Level, string> = {

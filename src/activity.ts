@@ -23,7 +23,7 @@ export class Activity implements ActivityType {
 		private defaultLevel: Level,
 		private messageTemplate: string,
 		private properties: Record<string, unknown>,
-		private startedAt: number
+		private startedAt: Date
 	) {
 		this.logger = owner.withTrace(trace)
 	}
@@ -81,7 +81,7 @@ export class Activity implements ActivityType {
 				properties: { ...this.owner.contextProperties, ...this.properties },
 				error: error && normalizeError(error),
 				trace: this.trace,
-				elapsedMs: performance.now() - this.startedAt,
+				startTimestamp: this.startedAt,
 			})
 		}
 	}

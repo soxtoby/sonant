@@ -9,10 +9,11 @@
 ### Changed
 
 - Require `seq-logging` 3.x for native trace-field support.
+- Replace `LogEvent.elapsedMs` with the activity's `startTimestamp`.
 
 ### Fixed
 
-- Forward trace and span identifiers through the Seq sink.
+- Forward trace identifiers, parent context, and activity timing through the Seq sink.
 
 ## v0.1.0
 

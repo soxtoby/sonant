@@ -49,7 +49,7 @@ export interface LogEvent {
     properties: Record<string, unknown>
     error: ErrorMetadata | undefined
     trace: TraceContext | undefined
-    elapsedMs: number | undefined
+    startTimestamp: Date | undefined
 }
 
 export interface LoggerConfig {
