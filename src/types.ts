@@ -55,10 +55,13 @@ export interface LogEvent {
 export interface LoggerConfig {
     minimumLevel: Level | LevelSwitch
     sinks: Sink[]
+    enrich: LogEventEnricher | undefined
     maxDestructureDepth: number
     maxDestructureCollectionLength: number
     selfLog: SelfLog | undefined
 }
+
+export type LogEventEnricher = (event: LogEvent) => void
 
 export interface StartActivityOptions {
     level?: Level

@@ -20,11 +20,14 @@ import { SeqSink } from "sonant/sinks/seq"
 let levelSwitch = createLevelSwitch("info");
 
 let logger = createLogger({
-  minimumLevel: levelSwitch, // Or "info" for a static level
-  sinks: [
-    new ConsoleSink(),
-    new SeqSink({ serverUrl: "http://localhost:5341" })
-  ]
+    minimumLevel: levelSwitch, // Or "info" for a static level
+    enrich(event) {
+        event.properties.RequestId = requestContext.requestId
+    },
+    sinks: [
+        new ConsoleSink(),
+        new SeqSink({ serverUrl: "http://localhost:5341" })
+    ]
 })
 
 logger.info("User {UserId} logged in from {IpAddress}", userId, ipAddress);

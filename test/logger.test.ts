@@ -41,6 +41,60 @@ describe("logger", () => {
         })
     })
 
+    test("enriches every emitted event", () => {
+        let sink = captureSink()
+        let requestId = "a"
+        let logger = createLogger({
+            sinks: [sink],
+            enrich(event) {
+                event.properties.RequestId = requestId
+            },
+        })
+
+        logger.info("First")
+        requestId = "b"
+        logger.startActivity("Second").complete()
+
+        expect(sink.events.map(event => event.properties.RequestId)).toEqual(["a", "b"])
+    })
+
+    test("enricher receives the complete event before sinks", () => {
+        let sink = captureSink()
+        let logger = createLogger({
+            sinks: [sink],
+            enrich(event) {
+                event.properties.SeenLevel = event.level
+                event.properties.UserId = "enriched"
+            },
+        }).with({ UserId: "context" })
+
+        logger.info("User {UserId}", "message")
+
+        expect(sink.events[0]?.properties).toEqual({
+            UserId: "enriched",
+            SeenLevel: "info",
+        })
+    })
+
+    test("self-logs enrichment failures without dropping the event", () => {
+        let sink = captureSink()
+        let selfLogs: { error: unknown, operation: unknown }[] = []
+        let logger = createLogger({
+            sinks: [sink],
+            enrich() {
+                throw new Error("unavailable")
+            },
+            selfLog(error, context) {
+                selfLogs.push({ error, operation: context.operation })
+            },
+        })
+
+        logger.info("Accepted")
+
+        expect(sink.events).toHaveLength(1)
+        expect(selfLogs).toMatchObject([{ error: { message: "unavailable" }, operation: "enrich" }])
+    })
+
     test("supports leading error metadata at every level", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })

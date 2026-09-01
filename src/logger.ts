@@ -9,6 +9,7 @@ export function createLogger(options?: Partial<LoggerConfig>): LoggerType {
 	return new Logger({
 		minimumLevel: options?.minimumLevel ?? 'info',
 		sinks: options?.sinks ?? [],
+		enrich: options?.enrich,
 		maxDestructureDepth: options?.maxDestructureDepth ?? 5,
 		maxDestructureCollectionLength: options?.maxDestructureCollectionLength ?? 100,
 		selfLog: options?.selfLog,
@@ -137,6 +138,12 @@ class Logger implements LoggerType, ActivityOwner {
 	}
 
 	emit(event: LogEvent) {
+		try {
+			this.config.enrich?.(event)
+		} catch (error) {
+			this.config.selfLog?.(error, { operation: 'enrich', level: event.level })
+		}
+
 		for (let sink of this.config.sinks) {
 			try {
 				let result = sink.emit(event)
