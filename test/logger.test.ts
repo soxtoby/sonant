@@ -7,8 +7,8 @@ describe("logger", () => {
         let sink = captureSink()
         let logger = createLogger({ minimumLevel: "warn", sinks: [sink] })
 
-        logger.info("Ignored {Value}", 1)
-        logger.warn("Accepted {Value}", 2)
+        logger.info("Ignored {Value}", { Value: 1 })
+        logger.warn("Accepted {Value}", { Value: 2 })
 
         expect(sink.events).toHaveLength(1)
         expect(sink.events[0]?.level).toBe("warn")
@@ -33,7 +33,7 @@ describe("logger", () => {
         let logger = createLogger({ sinks: [sink] }).with({ Request: context, UserId: "context" })
 
         context.requestId = "b"
-        logger.info("User {UserId}", "message")
+        logger.info("User {UserId}", { UserId: "message" })
 
         expect(sink.events[0]?.properties).toEqual({
             Request: { requestId: "a" },
@@ -68,7 +68,7 @@ describe("logger", () => {
             },
         }).with({ UserId: "context" })
 
-        logger.info("User {UserId}", "message")
+        logger.info("User {UserId}", { UserId: "message" })
 
         expect(sink.events[0]?.properties).toEqual({
             UserId: "enriched",
@@ -100,7 +100,7 @@ describe("logger", () => {
         let logger = createLogger({ sinks: [sink] })
         let error = new Error("failed")
 
-        logger.info(error, "Failed {Operation}", "sync")
+        logger.info(error, "Failed {Operation}", { Operation: "sync" })
 
         expect(sink.events[0]?.error).toMatchObject({ name: "Error", message: "failed" })
         expect(sink.events[0]?.properties).toEqual({ Operation: "sync" })
@@ -125,7 +125,7 @@ describe("logger", () => {
     })
 
     test("nullLogger is a complete no-op logger", async () => {
-        nullLogger.info("Ignored {Value}", 1)
+        nullLogger.info("Ignored {Value}", { Value: 1 })
         expect(nullLogger.with({ A: 1 })).toBe(nullLogger)
         await expect(nullLogger.flush()).resolves.toBeUndefined()
         await expect(nullLogger.close()).resolves.toBeUndefined()
@@ -137,7 +137,7 @@ describe("activity tracing", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })
 
-        let activity = logger.startActivity("Handle {Route}", "/orders")
+        let activity = logger.startActivity("Handle {Route}", { Route: "/orders" })
         activity.set("StatusCode", 200)
         activity.complete()
 
@@ -233,31 +233,32 @@ describe("activity tracing", () => {
 })
 
 describe("message templates", () => {
-    test("binds placeholders by occurrence and suffixes duplicates", () => {
+    test("binds repeated placeholders to the same named property", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })
 
-        logger.info("{UserId} {UserId} {UserId_2}", 1, 2, 3)
+        logger.info("{UserId} {UserId} {UserId_2}", { UserId: 1, UserId_2: 2 })
 
-        expect(sink.events[0]?.properties).toEqual({ UserId: 1, UserId_2: 2, UserId_2_2: 3 })
+        expect(sink.events[0]?.properties).toEqual({ UserId: 1, UserId_2: 2 })
+        expect(formatMessage(sink.events[0]!.messageTemplate, sink.events[0]!.properties)).toBe("1 1 2")
     })
 
-    test("uses undefined for missing values", () => {
+    test("uses undefined for missing properties in dynamic templates", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })
         let template: string = "A {A} B {B}"
 
-        logger.info(template, 1)
+        logger.info(template, { A: 1 })
 
         expect(sink.events[0]?.properties).toEqual({ A: 1, B: undefined })
     })
 
-    test("ignores extra values for dynamic templates", () => {
+    test("ignores extra properties for dynamic templates", () => {
         let sink = captureSink()
         let logger = createLogger({ sinks: [sink] })
         let template: string = "A {A}"
 
-        logger.info(template, 1, "extra")
+        logger.info(template, { A: 1, Extra: "extra" })
 
         expect(sink.events[0]?.properties).toEqual({ A: 1 })
     })
@@ -267,7 +268,7 @@ describe("message templates", () => {
         let logger = createLogger({ sinks: [sink] })
         let template: string = "Bad {User Id} {123} {Ok"
 
-        logger.info(template, "extra")
+        logger.info(template, { Extra: "extra" })
 
         expect(sink.events[0]?.properties).toEqual({})
     })
@@ -280,7 +281,12 @@ describe("destructuring", () => {
         let value: Record<string, unknown> = { name: "root" }
         value.self = value
 
-        logger.info("Value {Value} Map {Map} Set {Set} Error {Error}", value, new Map([[{ id: 1 }, "one"]]), new Set([1, 2]), new Error("bad"))
+        logger.info("Value {Value} Map {Map} Set {Set} Error {Error}", {
+            Value: value,
+            Map: new Map([[{ id: 1 }, "one"]]),
+            Set: new Set([1, 2]),
+            Error: new Error("bad"),
+        })
 
         expect(sink.events[0]?.properties.Value).toEqual({ name: "root", self: "[Circular]" })
         expect(sink.events[0]?.properties.Map).toEqual([{ key: { id: 1 }, value: "one" }])
@@ -303,7 +309,7 @@ describe("destructuring", () => {
             },
         }
 
-        logger.info("Good {Good} Bad {Bad}", { toJSON: () => ({ yes: true }) }, bad)
+        logger.info("Good {Good} Bad {Bad}", { Good: { toJSON: () => ({ yes: true }) }, Bad: bad })
 
         expect(sink.events[0]?.properties.Good).toEqual({ yes: true })
         expect(sink.events[0]?.properties.Bad).toBe("[DestructuringError: Error: nope]")
@@ -332,7 +338,7 @@ describe("formatMessage and console sink", () => {
         })
         let logger = createLogger({ sinks: [sink] })
 
-        logger.error(new Error("bad"), "User {Name}", "Ada")
+        logger.error(new Error("bad"), "User {Name}", { Name: "Ada" })
 
         expect(calls).toHaveLength(1)
         expect(calls[0]?.[0]).toContain('User "Ada"')

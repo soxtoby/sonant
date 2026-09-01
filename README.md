@@ -30,13 +30,15 @@ let logger = createLogger({
     ]
 })
 
-logger.info("User {UserId} logged in from {IpAddress}", userId, ipAddress);
+logger.info("User {UserId} logged in from {IpAddress}", { UserId: userId, IpAddress: ipAddress });
 
 let requestLogger = logger.with({ RequestId: requestId });
-requestLogger.warn(error, "Retrying {Operation}", operation);
+requestLogger.warn(error, "Retrying {Operation}", { Operation: operation });
 
 levelSwitch.minimumLevel = "debug";
 
 await logger.flush();
 await logger.close();
 ```
+
+For literal message templates, TypeScript requires the properties object to contain exactly the named placeholders. Repeated placeholders read the same property.

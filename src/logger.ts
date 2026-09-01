@@ -3,7 +3,7 @@ import { normalizeError, normalizeProperties } from "./destructure"
 import { isLevelEnabled, resolveMinimumLevel } from "./levels"
 import { bindProperties, parseMessageTemplate } from "./messageTemplate"
 import { asyncStorage, createTrace, isValidTraceContext } from "./tracing"
-import type { Activity as ActivityType, Level, LogEvent, LoggerConfig, Logger as LoggerType, StartActivityOptions, TemplateValues, TraceContext } from "./types"
+import type { Activity as ActivityType, Level, LogEvent, LoggerConfig, Logger as LoggerType, StartActivityOptions, TraceContext } from "./types"
 
 export function createLogger(options?: Partial<LoggerConfig>): LoggerType {
 	return new Logger({
@@ -25,56 +25,42 @@ class Logger implements LoggerType, ActivityOwner {
 		private traceContext?: TraceContext
 	) { }
 
-	verbose<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	verbose<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	verbose(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('verbose', errorOrTemplate as string, templateOrArg, ...rest)
+	verbose(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('verbose', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	debug<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	debug<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	debug(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('debug', errorOrTemplate as string, templateOrArg, ...rest)
+	debug(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('debug', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	info<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	info<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	info(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('info', errorOrTemplate as string, templateOrArg, ...rest)
+	info(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('info', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	warn<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	warn<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	warn(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('warn', errorOrTemplate as string, templateOrArg, ...rest)
+	warn(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('warn', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	error<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	error<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	error(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('error', errorOrTemplate as string, templateOrArg, ...rest)
+	error(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('error', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	fatal<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-	fatal<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	fatal(errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
-		this.log('fatal', errorOrTemplate as string, templateOrArg, ...rest)
+	fatal(errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
+		this.log('fatal', errorOrTemplate, templateOrProperties, properties)
 	}
 
-	log<Template extends string>(level: Level, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	log<Template extends string>(level: Level, error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
-	log(level: Level, errorOrTemplate: Error | string, templateOrArg?: string | unknown, ...rest: unknown[]): void {
+	log(level: Level, errorOrTemplate: Error | string, templateOrProperties?: string | Record<string, unknown>, properties?: Record<string, unknown>): void {
 		if (this.closed) {
 			this.config.selfLog?.(new Error('Logger is closed'), { operation: 'emit', level })
 
 		} else if (isLevelEnabled(level, resolveMinimumLevel(this.config.minimumLevel))) {
-			let error = errorOrTemplate instanceof Error ? errorOrTemplate : undefined
-			let messageTemplate = error ? templateOrArg : errorOrTemplate
-			let values = error ? rest : [templateOrArg, ...rest]
+			let [error, messageTemplate, suppliedProperties] = errorOrTemplate instanceof Error
+				? [errorOrTemplate, templateOrProperties as string, properties ?? {}]
+				: [undefined, errorOrTemplate, templateOrProperties as Record<string, unknown> ?? {}]
 
 			if (typeof messageTemplate == 'string') {
 				let tokens = parseMessageTemplate(messageTemplate)
-				let boundProperties = bindProperties(tokens, values)
+				let boundProperties = bindProperties(tokens, suppliedProperties)
 				let normalizedProperties = normalizeProperties(boundProperties, this.config)
 				let event: LogEvent = {
 					timestamp: new Date(),
@@ -93,18 +79,16 @@ class Logger implements LoggerType, ActivityOwner {
 		}
 	}
 
-	startActivity<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): ActivityType
-	startActivity<Template extends string>(options: StartActivityOptions, messageTemplate: Template, ...values: TemplateValues<Template>): ActivityType
-	startActivity<Template extends string>(optionsOrTemplate: StartActivityOptions | Template, templateOrArg?: Template | unknown, ...rest: unknown[]): ActivityType {
-		let options = typeof optionsOrTemplate == 'string' ? {} : optionsOrTemplate
-		let messageTemplate = typeof optionsOrTemplate == 'string' ? optionsOrTemplate : templateOrArg
-		let values = typeof optionsOrTemplate == 'string' ? [templateOrArg, ...rest] : rest
+	startActivity(optionsOrTemplate: StartActivityOptions | string, templateOrProperties?: string | Record<string, unknown>, maybeProperties?: Record<string, unknown>): ActivityType {
+		let [options, messageTemplate, suppliedProperties] = typeof optionsOrTemplate == 'object'
+			? [optionsOrTemplate, templateOrProperties as string, maybeProperties ?? {}]
+			: [{}, optionsOrTemplate as string, templateOrProperties as Record<string, unknown> ?? {}]
 
 		if (typeof messageTemplate == 'string') {
 			let parent = this.resolveParentTrace(options.parent)
 			let trace = createTrace(parent)
 			let tokens = parseMessageTemplate(messageTemplate)
-			let boundProperties = bindProperties(tokens, values)
+			let boundProperties = bindProperties(tokens, suppliedProperties)
 			let properties = normalizeProperties(boundProperties, this.config)
 			let defaultLevel = options.level ?? 'info'
 			let startedAt = new Date()

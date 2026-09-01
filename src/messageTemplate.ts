@@ -1,6 +1,5 @@
 export function parseMessageTemplate(messageTemplate: string): MessageTemplateToken[] {
     let tokens: MessageTemplateToken[] = []
-    let properties = new Set<string>()
     let position = 0
 
     while (position < messageTemplate.length) {
@@ -19,15 +18,10 @@ export function parseMessageTemplate(messageTemplate: string): MessageTemplateTo
         pushText(tokens, messageTemplate.slice(position, open))
 
         let placeholder = messageTemplate.slice(open + 1, close)
-        if (validPropertyName.test(placeholder)) {
-            let propertyName = placeholder
-            for (let i = 2; properties.has(propertyName); i++)
-                propertyName = `${placeholder}_${i}`
-            properties.add(propertyName)
-            tokens.push({ type: 'property', propertyName })
-        } else {
+        if (validPropertyName.test(placeholder))
+            tokens.push({ type: 'property', propertyName: placeholder })
+        else
             pushText(tokens, messageTemplate.slice(open, close + 1))
-        }
 
         position = close + 1
     }
@@ -37,11 +31,11 @@ export function parseMessageTemplate(messageTemplate: string): MessageTemplateTo
 
 const validPropertyName = /^[A-Za-z_][A-Za-z0-9_.]*$/
 
-export function bindProperties(tokens: MessageTemplateToken[], values: readonly unknown[]): Record<string, unknown> {
+export function bindProperties(tokens: MessageTemplateToken[], properties: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(
         tokens
             .filter(t => t.type == 'property')
-            .map((p, i) => [p.propertyName, values[i]] as const))
+            .map(p => [p.propertyName, properties[p.propertyName]] as const))
 }
 
 function pushText(tokens: MessageTemplateToken[], text: string): void {

@@ -6,6 +6,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Replace positional message-template values with a properties object whose keys are checked against literal template placeholders.
+
 ## v0.2.0
 
 ### Changed

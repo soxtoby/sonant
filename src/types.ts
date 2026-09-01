@@ -1,29 +1,45 @@
 export interface Logger {
     readonly currentTrace: TraceContext | undefined
 
-    verbose<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    verbose<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    verbose<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    verbose<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    verbose<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    verbose<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    debug<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    debug<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    debug<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    debug<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    debug<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    debug<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    info<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    info<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    info<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    info<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    info<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    info<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    warn<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    warn<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    warn<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    warn<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    warn<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    warn<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    error<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    error<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    error<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    error<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    error<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    error<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    fatal<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): void
-    fatal<Template extends string>(error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    fatal<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): void
+    fatal<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    fatal<Template extends string>(error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    fatal<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    log<Template extends string>(level: Level, messageTemplate: Template, ...values: TemplateValues<Template>): void
-    log<Template extends string>(level: Level, error: Error, messageTemplate: Template, ...values: TemplateValues<Template>): void
+    log<Template extends string>(level: Level, messageTemplate: TemplateWithoutProperties<Template>): void
+    log<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(level: Level, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
+    log<Template extends string>(level: Level, error: Error, messageTemplate: TemplateWithoutProperties<Template>): void
+    log<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(level: Level, error: Error, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): void
 
-    startActivity<Template extends string>(messageTemplate: Template, ...values: TemplateValues<Template>): Activity
-    startActivity<Template extends string>(options: StartActivityOptions, messageTemplate: Template, ...values: TemplateValues<Template>): Activity
+    startActivity<Template extends string>(messageTemplate: TemplateWithoutProperties<Template>): Activity
+    startActivity<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): Activity
+    startActivity<Template extends string>(options: StartActivityOptions, messageTemplate: TemplateWithoutProperties<Template>): Activity
+    startActivity<Template extends string, Properties extends TemplateProperties<NoInfer<Template>>>(options: StartActivityOptions, messageTemplate: Template, properties: ExactTemplateProperties<NoInfer<Template>, Properties>): Activity
 
     isEnabled(level: Level): boolean
     with(properties: Record<string, unknown>): Logger
@@ -99,16 +115,27 @@ export interface SelfLogContext {
     [key: string]: unknown
 }
 
-export type TemplateValues<Template extends string> = ExtractPlaceholders<Template>
+export type TemplateProperties<Template extends string> = string extends Template
+    ? Record<string, unknown>
+    : ([ExtractPlaceholderNames<Template>] extends [never]
+        ? Record<string, never>
+        : { [Name in ExtractPlaceholderNames<Template>]: unknown })
 
-type ExtractPlaceholders<Template extends string, Found extends unknown[] = []> =
+type TemplateWithoutProperties<Template extends string> = string extends Template
+    ? Template
+    : ([ExtractPlaceholderNames<Template>] extends [never] ? Template : never)
+
+type ExactTemplateProperties<Template extends string, Properties extends TemplateProperties<Template>> =
+    Properties & Record<Exclude<keyof Properties, ExtractPlaceholderNames<Template>>, never>
+
+type ExtractPlaceholderNames<Template extends string> =
     string extends Template
-    ? unknown[]
+    ? string
     : (Template extends `${string}{${infer Name}}${infer Rest}`
         ? (PlaceholderName<Name> extends never
-            ? ExtractPlaceholders<Rest, Found>
-            : ExtractPlaceholders<Rest, [...Found, unknown]>)
-        : Found)
+            ? ExtractPlaceholderNames<Rest>
+            : PlaceholderName<Name> | ExtractPlaceholderNames<Rest>)
+        : never)
 
 type PlaceholderName<Name extends string> = Name extends `${infer First}${infer Rest}`
     ? (First extends PlaceholderStart
