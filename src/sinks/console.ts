@@ -1,6 +1,6 @@
 import pc from "picocolors"
-import { formatMessage } from "../formatMessage"
-import type { Level, LogEvent, Sink } from "../types"
+import { formatMessage } from "../formatMessage.js"
+import type { Level, LogEvent, Sink } from "../types.js"
 
 export interface ConsoleSinkOptions {
     color?: boolean | 'auto'

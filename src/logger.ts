@@ -1,9 +1,9 @@
-import { Activity, createNullActivity, type ActivityOwner } from "./activity"
-import { normalizeError, normalizeProperties } from "./destructure"
-import { isLevelEnabled, resolveMinimumLevel } from "./levels"
-import { bindProperties, parseMessageTemplate } from "./messageTemplate"
-import { asyncStorage, createTrace, isValidTraceContext } from "./tracing"
-import type { Activity as ActivityType, Level, LogEvent, LoggerConfig, Logger as LoggerType, StartActivityOptions, TraceContext } from "./types"
+import { Activity, createNullActivity, type ActivityOwner } from "./activity.js"
+import { normalizeError, normalizeProperties } from "./destructure.js"
+import { isLevelEnabled, resolveMinimumLevel } from "./levels.js"
+import { bindProperties, parseMessageTemplate } from "./messageTemplate.js"
+import { asyncStorage, createTrace, isValidTraceContext } from "./tracing.js"
+import type { Activity as ActivityType, Level, LogEvent, LoggerConfig, Logger as LoggerType, StartActivityOptions, TraceContext } from "./types.js"
 
 export function createLogger(options?: Partial<LoggerConfig>): LoggerType {
 	return new Logger({
@@ -140,10 +140,14 @@ class Logger implements LoggerType, ActivityOwner {
 	}
 
 	private resolveParentTrace(parent: TraceContext | undefined): TraceContext | undefined {
-		if (parent && !isValidTraceContext(parent))
+		let resolvedParent: TraceContext | undefined
+		if (parent && !isValidTraceContext(parent)) {
 			this.config.selfLog?.(new Error('Invalid parent trace context'), { operation: 'startActivity', parent })
-		else
-			return parent ?? this.currentTrace
+			resolvedParent = undefined
+		} else {
+			resolvedParent = parent ?? this.currentTrace
+		}
+		return resolvedParent
 	}
 
 	async flush(): Promise<void> {

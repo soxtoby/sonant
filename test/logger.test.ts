@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import { createLevelSwitch, createLogger, formatMessage, nullLogger, type LogEvent, type Sink } from "../src"
-import { ConsoleSink } from "../src/sinks/console"
+import { createLevelSwitch, createLogger, formatMessage, nullLogger, type LogEvent, type Sink } from "../src/index.js"
+import { ConsoleSink } from "../src/sinks/console.js"
 
 describe("logger", () => {
     test("filters by fixed minimum level", () => {

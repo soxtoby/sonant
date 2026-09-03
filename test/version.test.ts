@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { bumpVersion, inferReleaseType, promoteRelease, readReleaseNotes } from "../scripts/version"
+import { bumpVersion, inferReleaseType, promoteRelease, readReleaseNotes } from "../scripts/version.js"
 
 describe('inferReleaseType', () => {
     test('uses the highest-impact populated category', () => {

@@ -1,5 +1,5 @@
 import { Logger as SeqLogger } from "seq-logging"
-import type { Level, LogEvent, Sink } from "../types"
+import type { Level, LogEvent, Sink } from "../types.js"
 
 export interface SeqSinkOptions {
     serverUrl: string

@@ -1,5 +1,5 @@
 import { beforeEach, expect, mock, test } from "bun:test"
-import type { LogEvent } from "../src"
+import type { LogEvent } from "../src/index.js"
 
 let emitted: Record<string, unknown>[] = []
 
@@ -11,7 +11,7 @@ mock.module("seq-logging", () => ({
     },
 }))
 
-let { SeqSink } = await import("../src/sinks/seq")
+let { SeqSink } = await import("../src/sinks/seq.js")
 
 beforeEach(() => {
     emitted = []

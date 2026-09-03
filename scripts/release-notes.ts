@@ -1,4 +1,4 @@
-import { readReleaseNotes } from "./version"
+import { readReleaseNotes } from "./version.js"
 
 let version = Bun.argv[2]
 if (!version)

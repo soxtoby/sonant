@@ -1,4 +1,4 @@
-import { createLogger } from "../src";
+import { createLogger } from "../src/index.js";
 
 const logger = createLogger();
 

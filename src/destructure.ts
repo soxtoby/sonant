@@ -1,4 +1,4 @@
-import type { ErrorMetadata, SelfLog } from "./types"
+import type { ErrorMetadata, SelfLog } from "./types.js"
 
 export interface DestructureOptions {
     maxDestructureDepth: number

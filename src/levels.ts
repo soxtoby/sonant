@@ -1,4 +1,4 @@
-import type { Level, LevelSwitch } from "./types"
+import type { Level, LevelSwitch } from "./types.js"
 
 let levelValues: Record<Level, number> = {
     verbose: 0,

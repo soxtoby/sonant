@@ -1,7 +1,7 @@
-import { normalizeError, normalizeProperties } from "./destructure"
-import { isLevelEnabled, resolveMinimumLevel } from "./levels"
-import { asyncStorage } from "./tracing"
-import type { Activity as ActivityType, Level, LogEvent, Logger, LoggerConfig, SelfLogContext, TraceContext } from "./types"
+import { normalizeError, normalizeProperties } from "./destructure.js"
+import { isLevelEnabled, resolveMinimumLevel } from "./levels.js"
+import { asyncStorage } from "./tracing.js"
+import type { Activity as ActivityType, Level, LogEvent, Logger, LoggerConfig, SelfLogContext, TraceContext } from "./types.js"
 
 export interface ActivityOwner {
 	config: LoggerConfig

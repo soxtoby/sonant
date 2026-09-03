@@ -1,4 +1,4 @@
-import type { TraceContext } from "./types"
+import type { TraceContext } from "./types.js"
 
 export type AsyncStorage = {
 	getStore(): TraceContext | undefined

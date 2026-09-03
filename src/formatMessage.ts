@@ -1,4 +1,4 @@
-import { parseMessageTemplate } from "./messageTemplate"
+import { parseMessageTemplate } from "./messageTemplate.js"
 
 export interface FormatMessageOptions {
     quoteStrings?: boolean
