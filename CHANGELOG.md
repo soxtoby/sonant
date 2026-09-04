@@ -6,6 +6,12 @@
 
 ## Unreleased
 
+## v0.4.0
+
+### Changed
+
+- Tighten TypeScript checks and use explicit `.js` import specifiers for Node- and browser-compatible ESM.
+
 ## v0.3.0
 
 ### Changed
