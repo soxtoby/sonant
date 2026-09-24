@@ -6,6 +6,8 @@
 
 ## Unreleased
 
+## v0.5.0
+
 ### Changed
 
 - The Seq sink now sends CLEF directly to Seq's `/ingest/clef` endpoint and no longer depends on `seq-logging`.
