@@ -36,14 +36,6 @@
   "dependencies": {
     "picocolors": "^1.1.1"
   },
-  "peerDependencies": {
-    "seq-logging": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "seq-logging": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@types/bun": "^1.2.0",
     "typescript": "^5.5.0"

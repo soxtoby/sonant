@@ -6,6 +6,17 @@
 
 ## Unreleased
 
+### Changed
+
+- The Seq sink now sends CLEF directly to Seq's `/ingest/clef` endpoint and no longer depends on `seq-logging`.
+- Add `maxBatchingTime` and `onError` options to the Seq sink.
+
+### Fixed
+
+- Send errors to Seq as text instead of `[object Object]`.
+- Activities now appear in Seq as spans, with start time and parent span.
+- Honor the Seq sink's `eventBodyLimit` option.
+
 ## v0.4.0
 
 ### Changed
