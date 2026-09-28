@@ -106,6 +106,7 @@ export interface ErrorMetadata {
     name: string
     message: string
     stack?: string
+    cause?: ErrorMetadata
 }
 
 export type SelfLog = (error: unknown, context: SelfLogContext) => void

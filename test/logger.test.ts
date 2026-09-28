@@ -294,6 +294,22 @@ describe("destructuring", () => {
         expect(sink.events[0]?.properties.Error).toMatchObject({ name: "Error", message: "bad" })
     })
 
+    test("normalizes error causes, stopping at circular causes", () => {
+        let sink = captureSink()
+        let logger = createLogger({ sinks: [sink] })
+        let root = new Error("root")
+        let error = new Error("outer", { cause: new TypeError("inner", { cause: root }) })
+        root.cause = error
+
+        logger.error(error, "Failed")
+
+        expect(sink.events[0]?.error).toMatchObject({
+            message: "outer",
+            cause: { name: "TypeError", message: "inner", cause: { message: "root" } },
+        })
+        expect(sink.events[0]?.error?.cause?.cause?.cause).toBeUndefined()
+    })
+
     test("uses toJSON and reports destructuring failures", () => {
         let sink = captureSink()
         let selfLogs: unknown[] = []

@@ -64,11 +64,13 @@ function normalizeValue(value: unknown, options: DestructureOptions, depth: numb
     }
 }
 
-export function normalizeError(error: Error): ErrorMetadata {
+export function normalizeError(error: Error, seen = new Set<Error>()): ErrorMetadata {
+    seen.add(error)
     return {
         name: error.name,
         message: error.message,
         ...(error.stack ? { stack: error.stack } : {}),
+        ...(error.cause instanceof Error && !seen.has(error.cause) ? { cause: normalizeError(error.cause, seen) } : {}),
     }
 }
 

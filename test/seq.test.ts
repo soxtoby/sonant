@@ -113,6 +113,20 @@ test("Seq sink formats errors as text", async () => {
     ])
 })
 
+test("Seq sink appends error causes", async () => {
+    let sink = new SeqSink({ serverUrl: "http://localhost:5341" })
+
+    sink.emit(logEvent({
+        error: {
+            name: "Error", message: "outer", stack: "Error: outer\n    at foo (a.js:1:1)",
+            cause: { name: "TypeError", message: "inner", cause: { name: "Error", message: "root" } },
+        },
+    }))
+    await sink.flush()
+
+    expect(requests[0]?.events[0]?.["@x"]).toBe("Error: outer\n    at foo (a.js:1:1)\nCaused by: TypeError: inner\nCaused by: Error: root")
+})
+
 test("Seq sink splits batches by size", async () => {
     let sink = new SeqSink({ serverUrl: "http://localhost:5341", batchSizeLimit: 200 })
 

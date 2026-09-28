@@ -6,6 +6,12 @@
 
 ## Unreleased
 
+## v0.6.0
+
+### Added
+
+- Include an error's `cause` chain in its error metadata, and in the exception sent to Seq.
+
 ## v0.5.0
 
 ### Changed

@@ -154,11 +154,13 @@ function formatClef(event: LogEvent): string {
     return JSON.stringify(clef, (_key, value) => typeof value == 'bigint' ? value.toString() : value)
 }
 
-function formatException({ name, message, stack }: ErrorMetadata): string {
+function formatException({ name, message, stack, cause }: ErrorMetadata): string {
     let header = message ? `${name}: ${message}` : name
-    return stack == undefined ? header
+    let text = stack == undefined ? header
         : stack.startsWith(header) ? stack
             : `${header}\n${stack}`
+    return cause == undefined ? text
+        : `${text}\nCaused by: ${formatException(cause)}`
 }
 
 let levelMap: Record<Level, string> = {
